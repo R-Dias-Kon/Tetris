@@ -1,6 +1,163 @@
 #include <iostream>
 #include <string>
 #include <windows.h>
+#include<cstdlib>
+
+// pieces (mirrored cuz of the weird way coordinates work here dw)
+// thank you gipitee
+char pieces[19][4][4]
+{
+	// I piece (4 rotations mirrored)
+	{
+		{'\0','\0','\0','\0'},
+		{'\0','\0','\0','\0'},
+		{'[','[','[','['},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','\0','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','[','\0','\0'}
+	},
+	// O piece (same in all positions mirrored)
+	{
+		{'\0','\0','\0','\0'},
+		{'\0','[','[','\0'},
+		{'\0','[','[','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	// T piece (4 rotations mirrored)
+	{
+		{'\0','[','\0','\0'},
+		{'[','[','\0','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','\0','\0','\0'}
+		
+	},
+	{
+		{'\0','\0','\0','\0'},
+		{'[','[','[','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'[','\0','\0','\0'},
+		{'[','[','\0','\0'},
+		{'[','\0','\0','\0'},
+		{'\0','\0','\0','\0'}
+		
+	},
+	{
+		{'\0','[','\0','\0'},
+		{'[','[','[','\0'},
+		{'\0','\0','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	// L piece (4 rotations mirrored)
+	{
+		{'\0','[','\0','\0'},
+		{'\0','[','[','['},
+		{'\0','\0','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','\0','\0','['},
+		{'\0','\0','\0','['},
+		{'\0','\0','[','['},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','[','['},
+		{'\0','\0','\0','['},
+		{'\0','\0','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','[','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	// J piece (4 rotations mirrored)
+	{
+		{'\0','\0','\0','['},
+		{'\0','[','[','['},
+		{'\0','\0','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','[','\0'},
+		{'\0','\0','[','\0'},
+		{'\0','\0','[','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','[','['},
+		{'\0','[','\0','\0'},
+		{'\0','\0','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','\0','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','[','[','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	// S piece (2 rotations mirrored)
+	{
+		{'\0','\0','\0','\0'},
+		{'\0','[','[','\0'},
+		{'\0','\0','[','['},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','\0','[','\0'},
+		{'\0','[','[','\0'},
+		{'\0','[','\0','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	// Z piece (2 rotations mirrored)
+	{
+		{'\0','\0','\0','\0'},
+		{'\0','\0','[','['},
+		{'\0','[','[','\0'},
+		{'\0','\0','\0','\0'}
+	},
+	{
+		{'\0','[','\0','\0'},
+		{'\0','[','[','\0'},
+		{'\0','\0','[','\0'},
+		{'\0','\0','\0','\0'}
+	}
+};
+
+// horizontal hitbox lookup table
+	// 
+	// numbers meant to be used as in 
+	// (pieceCoords[0] = clamp(pieceCoords[0] + 1, HERE, xLimit - HERE);)
+const int hitbox[19][2]
+{
+	{2, 1},
+	{4, 2},
+	{3, 1},
+	{4, 1},
+	{3, 1},
+	{4, 1},
+	{4, 0},
+	{4, 0},
+	{4, 1},
+	{4, 0},
+	{4, 1},
+	{4, 0},
+	{4, 1},
+	{4, 0},
+	{4, 1},
+	{3, 1},
+	{4, 1},
+	{3, 1},
+	{4, 1}
+};
 
 int clamp(int n, int lower, int upper) {
 	if (n < lower)
@@ -47,13 +204,35 @@ int spinIndex(int index)
 	return 0;
 }
 
+bool pieceCheck(int currentPiece, int pieceCoords[2], int x, int y)
+{
+	// check for piece
+	if ((pieceCoords[0] - 4) < x && x <= pieceCoords[0] &&
+		(pieceCoords[1] - 4) < y && y <= pieceCoords[1])
+	{
+		if (pieces[currentPiece]
+			[x - (pieceCoords[0] - 3)]
+				[y - (pieceCoords[1] - 3)]
+				!= '\0'
+				&& y >= 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int main()
 {
-
 	bool exit{ false };
 
+	// seed for random
+	int timeSnapshot{(int)time(0)};
+	int ellapsedTime{};
+
 	// variables for avoiding double click
-	const int spinCooldownDefault{ 4 };
+	const int spinCooldownDefault{ 2 };
 	int spinCooldown{};
 	const int moveCooldownDefault{ 2 };
 	int moveCooldown{};
@@ -63,163 +242,9 @@ int main()
 	int gravityTimer{ gravityTimerDefault };
 	double velocity{ 1 };
 
-
-	// pieces (mirrored cuz of the weird way coordinates work here dw)
-	char pieces[23][4][4]
-	{
-		// I piece (4 rotations mirrored)
-		{
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'},
-			{'[','[','[','['},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','\0','\0'},
-			{'\0','[','\0','\0'},
-			{'\0','[','\0','\0'},
-			{'\0','[','\0','\0'}
-		},
-		// O piece (same in all positions mirrored)
-		{
-			{'\0','\0','\0','\0'},
-			{'\0','[','[','\0'},
-			{'\0','[','[','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		// T piece (4 rotations mirrored)
-		{
-			{'\0','[','[','['},
-			{'\0','\0','[','\0'},
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','\0','[','\0'},
-			{'\0','[','[','\0'},
-			{'\0','\0','[','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','\0','\0'},
-			{'[','[','[','\0'},
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','\0','\0','['},
-			{'\0','\0','[','['},
-			{'\0','\0','\0','['},
-			{'\0','\0','\0','\0'}
-		},
-		// L piece (4 rotations mirrored)
-		{
-			{'\0','[','\0','\0'},
-			{'\0','[','[','['},
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','\0','\0','['},
-			{'\0','\0','\0','['},
-			{'\0','\0','[','['},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','[','['},
-			{'\0','\0','\0','['},
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','[','\0'},
-			{'\0','[','\0','\0'},
-			{'\0','[','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		// J piece (4 rotations mirrored)
-		{
-			{'\0','\0','\0','['},
-			{'\0','[','[','['},
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','[','\0'},
-			{'\0','\0','[','\0'},
-			{'\0','\0','[','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','[','['},
-			{'\0','[','\0','\0'},
-			{'\0','\0','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','\0','\0'},
-			{'\0','[','\0','\0'},
-			{'\0','[','[','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		// S piece (2 rotations mirrored)
-		{
-			{'\0','\0','\0','\0'},
-			{'\0','[','[','\0'},
-			{'\0','\0','[','['},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','\0','[','\0'},
-			{'\0','[','[','\0'},
-			{'\0','[','\0','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		// Z piece (2 rotations mirrored)
-		{
-			{'\0','\0','\0','\0'},
-			{'\0','\0','[','['},
-			{'\0','[','[','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
-			{'\0','[','\0','\0'},
-			{'\0','[','[','\0'},
-			{'\0','\0','[','\0'},
-			{'\0','\0','\0','\0'}
-		}
-	};
-
-
+	// piece variables
 	int pieceCoords[2]{ 4, 0};
 	int currentPiece{ 0 };
-
-	// horizontal hitbox lookup table
-	// 
-	// numbers meant to be used as in 
-	// (pieceCoords[0] = clamp(pieceCoords[0] + 1, HERE, xLimit - HERE);)
-	const int hitbox[19][2]
-	{
-		{2, 1},
-		{4, 2},
-		{3, 1},
-		{3, 1},
-		{4, 1},
-		{4, 0},
-		{4, 1},
-		{4, 0},
-		{4, 1},
-		{4, 0},
-		{4, 1},
-		{4, 0},
-		{4, 1},
-		{4, 0},
-		{4, 1},
-		{3, 1},
-		{4, 1},
-		{3, 1},
-		{4, 1}
-	};
 
 	// plane
 	const int xLimit{ 12 };
@@ -241,7 +266,7 @@ int main()
 			}
 			else
 			{
-				plane[x][y] = '.';
+				plane[x][y] = ' ';
 			}
 
 		}
@@ -251,7 +276,7 @@ int main()
 	while (!exit)
 	{
 		// handle gravity timer
-		// (for applying gravity when gravityTimer = 0)
+		// (applying gravity when gravityTimer = 0)
 		if (gravityTimer > 0)
 		{
 			gravityTimer--;
@@ -279,12 +304,43 @@ int main()
 			pieceCoords[0] = clamp(pieceCoords[0] + 1, hitbox[currentPiece][0],
 				                              xLimit - hitbox[currentPiece][1]);
 			moveCooldown = moveCooldownDefault;
+
+			for (int y{ yLimit + 1 }; y >= 0; y--)
+			{
+				for (int x{}; x <= xLimit + 1; x++)
+				{
+					if (pieceCheck(currentPiece, pieceCoords, x, y)) {
+						if (plane[x][y] == '[')
+						{
+							pieceCoords[0] = clamp(pieceCoords[0] - 1, hitbox[currentPiece][0],
+								xLimit - hitbox[currentPiece][1]);
+							moveCooldown = moveCooldownDefault;
+						}
+					}
+				}
+			}
 		}
 		else if (GetKeyState('A') & 0x8000 && moveCooldown == 0) // left
 		{
 			pieceCoords[0] = clamp(pieceCoords[0] - 1, hitbox[currentPiece][0],
 				                              xLimit - hitbox[currentPiece][1]);
 			moveCooldown = moveCooldownDefault;
+
+			for (int y{ yLimit + 1 }; y >= 0; y--)
+			{
+				for (int x{}; x <= xLimit + 1; x++)
+				{
+					if (pieceCheck(currentPiece, pieceCoords, x, y)) {
+						if (plane[x][y] == '[')
+						{
+							pieceCoords[0] = clamp(pieceCoords[0] + 1, hitbox[currentPiece][0],
+								xLimit - hitbox[currentPiece][1]);
+							moveCooldown = moveCooldownDefault;
+						}
+					}
+				}
+			}
+
 		}
 		if (GetKeyState('S') & 0x8000) // fall
 		{
@@ -294,16 +350,56 @@ int main()
 		{
 			currentPiece = spinIndex(currentPiece);
 			spinCooldown = spinCooldownDefault;
+
+			//correct position
+			pieceCoords[0] = clamp(pieceCoords[0], hitbox[currentPiece][0],
+				                          xLimit - hitbox[currentPiece][1]);
 		}
 
-		// test
-		if (pieceCoords[1] > 23)
+		// stop piece if collision
+		// this is happening when the pieces are overlapping already
+		bool glue{ false };
+		for (int y{ yLimit + 1 }; y >= 0; y--)
 		{
-			currentPiece++;
+			for (int x{}; x <= xLimit + 1; x++)
+			{
+				if (pieceCheck(currentPiece, pieceCoords, x, y)) {
+					if (y >= yLimit - 1 || plane[x][y] == '[')
+					{
+						// sinalize to glue piece
+						glue = true;
+						pieceCoords[1]--;
+					}
+				}
+			}
+		}
+
+		// glue piece
+		if (glue) {
+
+			for (int y{ yLimit + 1 }; y >= 0; y--)
+			{
+				for (int x{}; x < xLimit; x++)
+				{
+					if (pieceCheck(currentPiece, pieceCoords, x, y)) {
+						plane[x][y] = '[';
+					}
+
+					// destroy filled rows
+					// ...
+				}
+			}
+
+			// take new random piece
+			srand((unsigned) (timeSnapshot * ellapsedTime));
+			currentPiece = rand() % 20;
+
+			pieceCoords[0] = 4;
 			pieceCoords[1] = 0;
 		}
 
-		// print out the game
+
+		// render the game
 		system("cls");
 		for (int y{}; y < yLimit; y++)
 		{
@@ -346,8 +442,10 @@ int main()
 
 		std::cout << pieceCoords[1] - 3;
 
-		// run at desired (30) fps
+		// run at desired (60) fps
 		Sleep(17);
+
+		ellapsedTime++;
 	}
 
 	return 0;
