@@ -5,8 +5,11 @@
 
 // pieces (mirrored cuz of the weird way coordinates work here dw)
 // thank you gipitee
+int uniquePieces[7]{ 1, 2, 3, 7, 11, 15, 17 };
 char pieces[19][4][4]
 {
+	// UNIQUE PIECES: 1, 2, 3, 7, 11, 15, 17
+
 	// I piece (4 rotations mirrored)
 	{
 		{'\0','\0','\0','\0'},
@@ -227,6 +230,10 @@ int main()
 {
 	bool exit{ false };
 
+	// chars used to fill plane
+	const char blank{ '.' };
+	const char border{ '#' };
+
 	// seed for random
 	int timeSnapshot{(int)time(0)};
 	int ellapsedTime{};
@@ -258,15 +265,15 @@ int main()
 		{
 			if (x == 0 || x == xLimit - 1)
 			{
-				plane[x][y] = '#';
+				plane[x][y] = border;
 			}
 			else if (y == yLimit - 1)
 			{
-				plane[x][y] = '#';
+				plane[x][y] = border;
 			}
 			else
 			{
-				plane[x][y] = ' ';
+				plane[x][y] = blank;
 			}
 
 		}
@@ -375,29 +382,107 @@ int main()
 		}
 
 		// glue piece
+		bool fall{ false };
 		if (glue) {
 
+			// iterar y de baixo pra cima
 			for (int y{ yLimit + 1 }; y >= 0; y--)
 			{
+				int consecutiveColumns{};
+
 				for (int x{}; x < xLimit; x++)
 				{
-					if (pieceCheck(currentPiece, pieceCoords, x, y)) {
+					if (pieceCheck(currentPiece, pieceCoords, x, y))
+					{
 						plane[x][y] = '[';
 					}
 
-					// destroy filled rows
-					// ...
+
+					if (plane[x][y] == '[')
+					{
+						consecutiveColumns++;
+					}
+				}
+				// destroy filled row
+				if (consecutiveColumns == xLimit - 2)
+				{
+					for (int i{ 1 }; i < xLimit; i++)
+					{
+						plane[i][y] = blank;
+					}
+					fall = true;
 				}
 			}
-
 			// take new random piece
-			srand((unsigned) (timeSnapshot * ellapsedTime));
-			currentPiece = rand() % 20;
+			srand((unsigned)(timeSnapshot* ellapsedTime));
+			currentPiece = uniquePieces[rand() % 8];
 
 			pieceCoords[0] = 4;
 			pieceCoords[1] = 0;
 		}
 
+		// TO DO: FIX THING
+
+		// move everything down
+		if (fall)
+		{
+			bool empty{ true };
+			while (empty) 
+			{
+				// iterate y top to bottom
+				// determine first row with a piece
+				int yTopPiece{};
+				for (int y{}; y < yLimit; y++)
+				{
+					for (int x{}; x < xLimit; x++) {
+						if (plane[x][y] == '[')
+						{
+							yTopPiece = y;
+							break;
+						}
+					}
+				}
+
+				// iterate y bottom up
+				// if yDestroy stays at -1, don't engage
+				int yDestroy{ -1 };
+				for (int y{ yLimit - 1 }; y >= yTopPiece; y--)
+				{
+					int consecutiveColumns{};
+
+					// check to see if row is empty
+					for (int x{ 1 }; x < xLimit; x++)
+					{
+						if (plane[x][y] == blank)
+						{
+							consecutiveColumns++;
+						}
+					}
+
+					if (consecutiveColumns == xLimit - 2)
+					{
+						yDestroy = y;
+						break;
+					}
+				}
+
+				if (yDestroy > -1)
+				{
+					// pull everything down one row since yDestroy
+					for (int y{ yDestroy }; y > 0; y--)
+					{
+						for (int x{ 1 }; x < xLimit; x++)
+						{
+							plane[x][y] = plane[x][y - 1];
+						}
+					}
+				}
+				else
+				{
+					empty = false;
+				}
+			}
+		} 
 
 		// render the game
 		system("cls");
