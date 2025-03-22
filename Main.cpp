@@ -37,7 +37,21 @@ private:
 		"SETTINGS",
 		"QUIT"
 	};
+
+	// variables for settings menu
+
+	const std::string_view settingsOptions[4]
+	{
+		"X SIZE",
+		"Y SIZE",
+		"VELOCITY",
+		"RETURN"
+	};
+
+
+	bool inSettings{ true };
 	int currentOption{};
+
 
 	// IN GAME:
 
@@ -54,16 +68,18 @@ private:
 	// variables used to make the piece move down at a pace
 	const int gravityTimerDefault{ 10 };
 	int gravityTimer{ gravityTimerDefault };
-	double velocity{ 1 };
+	int velocity{ 1 };
 
 	// piece variables
 	int pieceCoords[2]{ 4, 0 };
 	int currentPiece[2]{ 0, 0 };
 
 	// plane
-	const int xLimit{ 12 };
-	const int yLimit{ 22 };
-	char plane[12][22]{};
+	const int maxXLimit{ 40 };
+	const int maxYLimit{ 40 };
+	int xLimit{ 12 };
+	int yLimit{ 22 };
+	char plane[40][40]{};
 
 	const int uniquePieces[7]{ 1, 2, 3, 9, 11, 15, 17 };
 	const char pieces[19][4][4]
@@ -456,7 +472,7 @@ private:
 	void resetCoords()
 	{
 		// reset piece coords
-		pieceCoords[0] = xLimit / 2;
+		pieceCoords[0] = clamp(xLimit / 2, 4, xLimit);
 		pieceCoords[1] = 0;
 	}
 
@@ -517,15 +533,34 @@ private:
 	{
 		// when select button is pressed in menu
 
-		switch (currentOption)
+		if (!inSettings)
 		{
-		case 0:
-			inGame = true;
-			reset();
-			break;
-		case 2:
-			exit(0);
-			break;
+			switch (currentOption)
+			{
+			case 0: // START
+				inGame = true;
+				reset();
+				break;
+
+			case 1: // SETTINGS
+				inSettings = true;
+				currentOption = 0;
+				break;
+
+			case 2: // EXIT
+				exit(0);
+				break;
+			}
+		}
+		else
+		{
+			switch (currentOption)
+			{
+			case 3: // RETURN
+				inSettings = false;
+				currentOption = 0;
+				break;
+			}
 		}
 	}
 
@@ -653,31 +688,79 @@ private:
 
 				// print menu stuff at the right side
 
-				if ((y + 1) % 3 == 0 &&                  // margin
-					x == xLimit - 1 &&        // if at the last column
-					i < sizeof(options) / sizeof(options[0]))
+				if (!inSettings)
 				{
-					char select[3]{ '\0', ' ', ' ' };
-
-					if (i == currentOption)
+					if ((y + 1) % 3 == 0 &&                  // margin
+						x == xLimit - 1 &&        // if at the last column
+						i < sizeof(options) / sizeof(options[0]))
 					{
-						select[0] = ' ';
-						select[1] = '[';
-						select[2] = ']';
+						char select[3]{ '\0', ' ', ' ' };
+
+						if (i == currentOption)
+						{
+							select[0] = ' ';
+							select[1] = '[';
+							select[2] = ']';
+						}
+
+
+						std::cout
+							<< "    "
+							<< select[0]
+							<< select[1]
+							<< options[i]
+							<< select[2];
+
+							i++;
 					}
-
-					
-					std::cout
-						<< "    "
-						<< select[0]
-						<< select[1]
-						<< options[i]
-						<< select[2];
-
-						i++;
 				}
 
-				if (y == 16 && x == xLimit -1)
+				else
+				{
+					if ((y + 1) % 3 == 0 &&        // margin
+						x == xLimit - 1 &&        // if at the last column
+						i < sizeof(settingsOptions) / sizeof(settingsOptions[0]))
+					{
+						int amount{}; // recpective amount for option
+						switch (i)
+						{
+						case 0: // X SIZE
+							amount = xLimit;
+							break;
+
+						case 1: // Y SIZE
+							amount = yLimit;
+							break;
+
+						case 2: // VELOCITY
+							amount = velocity;
+							break;
+
+						case 3: // RETURN
+							amount = 0;
+						}
+
+						char select[3]{ '\0', ' ', ' ' }; // dw about ts
+						if (i == currentOption) // highlight option
+						{
+							select[0] = ' ';
+							select[1] = '[';
+							select[2] = ']';
+						}
+
+						// print
+						std::cout
+							<< "    "
+							<< select[0]
+							<< select[1]
+							<< settingsOptions[i] << " " << amount
+							<< select[2];
+
+						i++;
+					}
+				}
+
+				if (y == 16 && x == xLimit - 1) // print the score
 				{
 					std::cout
 						<< "     "
@@ -688,6 +771,7 @@ private:
 			std::cout << std::endl;
 		}
 	}
+
 
 public:
 
@@ -807,27 +891,125 @@ public:
 		}
 		else
 		{
-			switch (key)
+			if (!inSettings)
 			{
-				// move up
-			case 'w':
-				currentOption = clamp(
-					currentOption - 1,
-					0,
-					(sizeof(options) / sizeof(options[0]) - 1));
-				break;
+				switch (key)
+				{
+					// move up
+				case 'w':
+					currentOption = clamp(
+						currentOption - 1,
+						0,
+						(sizeof(options) / sizeof(options[0]) - 1));
+					break;
 
-				// move down
-			case 's':
-				currentOption = clamp(
-					currentOption + 1,
-					0,
-					(sizeof(options) / sizeof(options[0]) - 1));
-				break;
-				// select
-			case ' ':
-				select();
-				break;
+					// move down
+				case 's':
+					currentOption = clamp(
+						currentOption + 1,
+						0,
+						(sizeof(options) / sizeof(options[0]) - 1));
+					break;
+					// select
+				case ' ':
+					select();
+					break;
+				}
+			}
+			else
+			{
+				switch (key)
+				{
+					// move up
+				case 'w':
+					currentOption = clamp(
+						currentOption - 1,
+						0,
+						(sizeof(settingsOptions) / sizeof(settingsOptions[0]) - 1));
+					break;
+
+					// move down
+				case 's':
+					currentOption = clamp(
+						currentOption + 1,
+						0,
+						(sizeof(settingsOptions) / sizeof(settingsOptions[0]) - 1));
+					break;
+
+
+
+				case 'd': // increase
+
+					switch (currentOption)
+					{
+					case 0: // X SIZE
+						xLimit = clamp(
+							xLimit + 1,
+							6,
+							maxXLimit
+						);
+						break;
+
+					case 1: // Y SIZE
+						yLimit = clamp(
+							yLimit + 1,
+							6,
+							maxYLimit
+						);
+						break;
+
+					case 2: // VELOCITY
+						velocity = clamp(
+							velocity + 1,
+							1,
+							20
+						);
+						break;
+
+					}
+
+					drawBorder();
+
+					break;
+
+				case 'a': // decrease
+
+					switch (currentOption)
+					{
+					case 0: // X SIZE
+						xLimit = clamp(
+							xLimit - 1,
+							6,
+							maxXLimit
+						);
+						break;
+
+					case 1: // Y SIZE
+						yLimit = clamp(
+							yLimit - 1,
+							6,
+							maxYLimit
+						);
+						break;
+
+					case 2: // VELOCITY
+						velocity = clamp(
+							velocity - 1,
+							1,
+							20
+						);
+						break;
+					}
+
+					drawBorder();
+
+					break;
+
+					// select
+				case ' ':
+					select();
+					break;
+				}
 			}
 		}
 
