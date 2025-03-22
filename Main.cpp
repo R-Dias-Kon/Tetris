@@ -2,6 +2,11 @@
 #include <windows.h>
 #include <cstdlib>
 #include <string_view>
+#include <mmsystem.h> // sound
+
+#pragma comment(lib, "winmm.lib") // sound
+
+
 
 int clamp(int n, int lower, int upper) {
 	if (n < lower)
@@ -40,16 +45,17 @@ private:
 
 	// variables for settings menu
 
-	const std::string_view settingsOptions[4]
+	const std::string_view settingsOptions[5]
 	{
 		"X SIZE",
 		"Y SIZE",
 		"VELOCITY",
+		"ACCELERATION",
 		"RETURN"
 	};
 
 
-	bool inSettings{ true };
+	bool inSettings{ false };
 	int currentOption{};
 
 
@@ -68,11 +74,17 @@ private:
 	// variables used to make the piece move down at a pace
 	const int gravityTimerDefault{ 10 };
 	int gravityTimer{ gravityTimerDefault };
+
 	int velocity{ 1 };
+
+	int accelerationFactor{ 10 }; // use to divide the default
+	const int accelerationTimerDefault{ 5000 };   // 4000 pace to make velocity bigger
+	int accelerationTimer{ };
+	
 
 	// piece variables
 	int pieceCoords[2]{ 4, 0 };
-	int currentPiece[2]{ 0, 0 };
+	int currentPiece[2]{ 1, 0 };
 
 	// plane
 	const int maxXLimit{ 40 };
@@ -80,6 +92,33 @@ private:
 	int xLimit{ 12 };
 	int yLimit{ 22 };
 	char plane[40][40]{};
+
+	// art
+	char art[40][40] = {
+	{'#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '.', '[', '[', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '[', '[', '.', '.', '[', '[', '.', '.', '.', '#'},
+	{'#', '[', '.', '[', '.', '[', '.', '.', '[', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '[', '[', '[', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '.', '[', '[', '.', '.', '.', '#'},
+	{'#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '.', '[', '[', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '[', '[', '.', '.', '.', '.', '.', '.', '.', '#'},
+	{'#', '[', '.', '[', '.', '[', '.', '[', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '[', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '.', '[', '[', '.', '.', '.', '#'},
+	{'#', '.', '.', '.', '.', '[', '.', '.', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '[', '[', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '.', '.', '[', '.', '.', '.', '#'},
+	{'#', '.', '.', '[', '.', '[', '[', '.', '.', '.', '.', '#'},
+	{'#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'}
+	};
+
 
 	const int uniquePieces[7]{ 1, 2, 3, 9, 11, 15, 17 };
 	const char pieces[19][4][4]
@@ -115,9 +154,9 @@ private:
 			{'\0','\0','\0','\0'}
 		},
 		{
-			{'\0','\0','\0','\0'},
-			{'\0','[','[','['},
 			{'\0','\0','[','\0'},
+			{'\0','[','[','['},
+			{'\0','\0','\0','\0'},
 			{'\0','\0','\0','\0'}
 		},
 		{
@@ -127,9 +166,9 @@ private:
 			{'\0','\0','\0','\0'}
 		},
 		{
-			{'\0','\0','[','\0'},
-			{'\0','[','[','['},
 			{'\0','\0','\0','\0'},
+			{'\0','[','[','['},
+			{'\0','\0','[','\0'},
 			{'\0','\0','\0','\0'}
 		},
 
@@ -221,9 +260,9 @@ private:
 		{4, 2},
 		{3, 1},
 		{4, 1},
-		{3, 1},
-		{4, 1},
 		{4, 0},
+		{4, 1},
+		{3, 1},
 		{4, 0},
 		{4, 1},
 		{4, 0},
@@ -240,7 +279,7 @@ private:
 
 
 
-	// functions
+	// methods
 
 	void newRandomPiece() {
 		// take new random piece, if current and future pieces match, redo.
@@ -397,7 +436,24 @@ private:
 				}
 			}
 
-			gravityTimer = (int)(gravityTimerDefault / velocity);
+			gravityTimer = gravityTimerDefault / velocity;
+		}
+	}
+
+	void acceleration()
+	{
+		// handle acceleration timer
+		// (increase velocity when accelerationTimer = 0)
+
+		if (accelerationTimer > 0)
+		{
+			accelerationTimer--;
+		}
+		else
+		{
+			PlaySound(TEXT("accelerate.wav"), NULL, SND_FILENAME | SND_ASYNC);
+			velocity++;
+			accelerationTimer = accelerationTimerDefault / accelerationFactor;
 		}
 	}
 
@@ -463,6 +519,7 @@ private:
 
 					destroyed = true;
 					score++;
+					PlaySound(TEXT("hit.wav"), NULL, SND_FILENAME | SND_ASYNC);
 				}
 			}
 		}
@@ -480,11 +537,14 @@ private:
 	{
 		// do all the actions needed when collision is detected
 
+		PlaySound(TEXT("collide.wav"), NULL, SND_FILENAME | SND_ASYNC);
+
 		glue();
 		dissolveRows();
 		newRandomPiece();
 		resetCoords();
 		checkLose();
+
 	}
 
 	void checkLose()
@@ -503,6 +563,7 @@ private:
 	void lose()
 	{
 		inGame = false;
+		PlaySound(TEXT("lose.wav"), NULL, SND_FILENAME | SND_ASYNC);
 	}
 
 	void cleanPlane()
@@ -526,6 +587,9 @@ private:
 		newRandomPiece();
 		resetCoords();
 		cleanPlane();
+
+		accelerationTimer = accelerationTimerDefault / accelerationFactor;
+		velocity = 1;
 		score = 0;
 	}
 
@@ -556,12 +620,14 @@ private:
 		{
 			switch (currentOption)
 			{
-			case 3: // RETURN
+			case 4: // RETURN
 				inSettings = false;
 				currentOption = 0;
 				break;
 			}
 		}
+
+		PlaySound(TEXT("hit.wav"), NULL, SND_FILENAME | SND_ASYNC);
 	}
 
 	void renderGame()
@@ -633,7 +699,6 @@ private:
 					}
 				}
 			}
-
 
 			std::cout << std::endl;
 		}
@@ -736,7 +801,11 @@ private:
 							amount = velocity;
 							break;
 
-						case 3: // RETURN
+						case 3: // ACCELERTION
+							amount = accelerationFactor;
+							break;
+
+						case 4: // RETURN
 							amount = 0;
 						}
 
@@ -772,8 +841,24 @@ private:
 		}
 	}
 
+	void drawArt()
+	{
+		for (int x{}; x < 40; x++)
+		{
+			for (int y{}; y < 40; y++)
+			{
+				plane[x][y] = art[y][x];
+			}
+		}
+	}
+
 
 public:
+
+	bool getGame()
+	{
+		return inGame;
+	}
 
 	void takeInput(char key)
 	{
@@ -966,6 +1051,12 @@ public:
 						);
 						break;
 
+					case 3: // ACCELERATION
+						accelerationFactor = clamp(
+							accelerationFactor + 1,
+							1,
+							50
+						);
 					}
 
 					drawBorder();
@@ -999,6 +1090,13 @@ public:
 							20
 						);
 						break;
+
+					case 3: // ACCELERATION
+						accelerationFactor = clamp(
+							accelerationFactor - 1,
+							1,
+							50
+						);
 					}
 
 					drawBorder();
@@ -1024,6 +1122,7 @@ public:
 			ellapsedTime = _ellapsedTime;
 
 			gravity();
+			acceleration();
 
 			renderGame();
 		}
@@ -1041,13 +1140,17 @@ public:
 	{
 		pTimeSnapshot = timeSnapshot;
 
-		drawBorder();
+		drawArt();
+
+		next( 0 );
 	}
 
 };
 
 int main()
 {
+	PlaySound(TEXT("intro.wav"), NULL, SND_FILENAME | SND_ASYNC);
+
 	bool exit{ false };
 
 	// seed for random
@@ -1068,8 +1171,11 @@ int main()
 	// main loop
 	while (!exit)
 	{
-		tetris.next(ellapsedTime);
-
+		if (tetris.getGame())
+		{
+			tetris.next(ellapsedTime);
+		}
+		
 		// subtract cooldowns
 		if (spinCooldown > 0)
 		{
@@ -1086,24 +1192,50 @@ int main()
 		{
 			tetris.takeInput('a');
 			moveCooldown = moveCooldownDefault;
+
+			if (!tetris.getGame())
+			{
+				tetris.next(ellapsedTime);
+			}
 		}
 		else if (GetKeyState(VK_RIGHT) & 0x8000 && moveCooldown == 0) // right
 		{
 			tetris.takeInput('d');
 			moveCooldown = moveCooldownDefault;
+
+			if (!tetris.getGame())
+			{
+				tetris.next(ellapsedTime);
+			}
 		}
 		if (GetKeyState(VK_DOWN) & 0x8000 && moveCooldown == 0) // down
 		{
 			tetris.takeInput('s');
+
+			if (!tetris.getGame())
+			{
+				tetris.next(ellapsedTime);
+			}
 		}
 		if (GetKeyState(VK_UP) & 0x8000 && spinCooldown == 0) // spin
 		{
 			tetris.takeInput('w');
 			spinCooldown = spinCooldownDefault;
+
+			if (!tetris.getGame())
+			{
+				tetris.next(ellapsedTime);
+			}
+
 		}
 		if (GetKeyState(VK_SPACE) & 0x8000 && moveCooldown == 0) // space
 		{
 			tetris.takeInput(' ');
+
+			if (!tetris.getGame())
+			{
+				tetris.next(ellapsedTime);
+			}
 		}
 
 
