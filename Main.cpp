@@ -58,14 +58,14 @@ private:
 
 	// piece variables
 	int pieceCoords[2]{ 4, 0 };
-	int currentPiece{ 0 };
+	int currentPiece[2]{ 0, 0 };
 
 	// plane
 	const int xLimit{ 12 };
 	const int yLimit{ 22 };
 	char plane[12][22]{};
 
-	const int uniquePieces[7]{ 1, 2, 3, 7, 11, 15, 17 };
+	const int uniquePieces[7]{ 1, 2, 3, 9, 11, 15, 17 };
 	const char pieces[19][4][4]
 	{
 		// pieces (mirrored cuz of the weird way coordinates work here dw)
@@ -93,31 +93,30 @@ private:
 		},
 		// T piece (4 rotations mirrored)
 		{
-			{'\0','[','\0','\0'},
-			{'[','[','\0','\0'},
-			{'\0','[','\0','\0'},
+			{'\0','\0','[','\0'},
+			{'\0','\0','[','['},
+			{'\0','\0','[','\0'},
 			{'\0','\0','\0','\0'}
-
 		},
 		{
 			{'\0','\0','\0','\0'},
-			{'[','[','[','\0'},
-			{'\0','[','\0','\0'},
+			{'\0','[','[','['},
+			{'\0','\0','[','\0'},
 			{'\0','\0','\0','\0'}
 		},
 		{
-			{'[','\0','\0','\0'},
-			{'[','[','\0','\0'},
-			{'[','\0','\0','\0'},
+			{'\0','\0','[','\0'},
+			{'\0','[','[','\0'},
+			{'\0','\0','[','\0'},
 			{'\0','\0','\0','\0'}
-
 		},
 		{
-			{'\0','[','\0','\0'},
-			{'[','[','[','\0'},
+			{'\0','\0','[','\0'},
+			{'\0','[','[','['},
 			{'\0','\0','\0','\0'},
 			{'\0','\0','\0','\0'}
 		},
+
 		// L piece (4 rotations mirrored)
 		{
 			{'\0','[','\0','\0'},
@@ -170,28 +169,28 @@ private:
 		},
 		// S piece (2 rotations mirrored)
 		{
-			{'\0','\0','\0','\0'},
-			{'\0','[','[','\0'},
-			{'\0','\0','[','['},
-			{'\0','\0','\0','\0'}
-		},
-		{
 			{'\0','\0','[','\0'},
 			{'\0','[','[','\0'},
 			{'\0','[','\0','\0'},
+			{'\0','\0','\0','\0'}
+		},
+		{
+			{'\0','\0','\0','\0'},
+			{'\0','[','[','\0'},
+			{'\0','\0','[','['},
 			{'\0','\0','\0','\0'}
 		},
 		// Z piece (2 rotations mirrored)
 		{
-			{'\0','\0','\0','\0'},
-			{'\0','\0','[','['},
-			{'\0','[','[','\0'},
-			{'\0','\0','\0','\0'}
-		},
-		{
 			{'\0','[','\0','\0'},
 			{'\0','[','[','\0'},
 			{'\0','\0','[','\0'},
+			{'\0','\0','\0','\0'}
+		},
+		{
+			{'\0','\0','\0','\0'},
+			{'\0','\0','[','['},
+			{'\0','[','[','\0'},
 			{'\0','\0','\0','\0'}
 		}
 	};
@@ -217,10 +216,10 @@ private:
 		{4, 1},
 		{4, 0},
 		{4, 1},
-		{3, 1},
 		{4, 1},
 		{3, 1},
-		{4, 1}
+		{4, 1},
+		{3, 1}
 	};
 
 
@@ -228,9 +227,25 @@ private:
 	// functions
 
 	void newRandomPiece() {
-		// take new random piece
-		srand((unsigned)(*pTimeSnapshot * ellapsedTime));
-		currentPiece = uniquePieces[rand() % 8];
+		// take new random piece, if current and future pieces match, redo.
+		currentPiece[0] = currentPiece[1];
+
+		int offset{};
+
+		while (1)
+		{
+			srand((unsigned)(*pTimeSnapshot * (ellapsedTime + offset)));
+			currentPiece[1] = uniquePieces[rand() % 7];
+
+			if (currentPiece[0] != currentPiece[1])
+			{
+				break;
+			}
+			else
+			{
+				offset++;
+			}
+		}
 	}
 
 	bool pieceCheck(int x, int y)
@@ -238,7 +253,7 @@ private:
 		if ((pieceCoords[0] - 4) < x && x <= pieceCoords[0] &&
 			(pieceCoords[1] - 4) < y && y <= pieceCoords[1])
 		{
-			if (pieces[currentPiece]
+			if (pieces[currentPiece[0]]
 				[x - (pieceCoords[0] - 3)]
 					[y - (pieceCoords[1] - 3)]
 					!= '\0'
@@ -282,15 +297,15 @@ private:
 		case 'a':
 			pieceCoords[0] = clamp(
 				pieceCoords[0] - 1,
-				hitbox[currentPiece][0],
-				xLimit - hitbox[currentPiece][1]);
+				hitbox[currentPiece[0]][0],
+				xLimit - hitbox[currentPiece[0]][1]);
 			break;
 
 		case 'd':
 			pieceCoords[0] = clamp(
 				pieceCoords[0] + 1,
-				hitbox[currentPiece][0],
-				xLimit - hitbox[currentPiece][1]);
+				hitbox[currentPiece[0]][0],
+				xLimit - hitbox[currentPiece[0]][1]);
 			break;
 
 		case 's':
@@ -326,13 +341,13 @@ private:
 		case 18:  index = 17; break;
 		}
 
-		currentPiece = index;
+		currentPiece[0] = index;
 
 		//correct position
 		pieceCoords[0] = clamp(
 			pieceCoords[0],
-			hitbox[currentPiece][0],
-			xLimit - hitbox[currentPiece][1]);
+			hitbox[currentPiece[0]][0],
+			xLimit - hitbox[currentPiece[0]][1]);
 
 	}
 
@@ -532,7 +547,7 @@ private:
 				if ((pieceCoords[0] - 4) < x && x <= pieceCoords[0] &&
 					(pieceCoords[1] - 4) < y && y <= pieceCoords[1])
 				{
-					if (pieces[currentPiece]
+					if (pieces[currentPiece[0]]
 						[x - (pieceCoords[0] - 3)]
 							[y - (pieceCoords[1] - 3)]
 							!= '\0'
@@ -555,7 +570,36 @@ private:
 				{
 					std::cout << "  ";
 				}
+
+				if (y == 16 && x == xLimit - 1)
+				{
+					std::cout
+						<< "     "
+						<< "SCORE: " << score;
+				}
 			}
+
+			// print future piece on the side
+
+			if (3 < y && y <= 7) // beetween y6 and y10
+			{
+				std::cout << "        ";
+
+				for (int x{}; x < 4; x++)
+				{
+					currentChar = pieces[currentPiece[1]][x][y - 3];
+					if (currentChar == '[')
+					{
+						std::cout << currentChar << ']';
+					}
+					else
+					{
+						std::cout << "  ";
+					}
+				}
+			}
+
+
 			std::cout << std::endl;
 		}
 	}
@@ -581,7 +625,7 @@ private:
 				if ((pieceCoords[0] - 4) < x && x <= pieceCoords[0] &&
 					(pieceCoords[1] - 4) < y && y <= pieceCoords[1])
 				{
-					if (pieces[currentPiece]
+					if (pieces[currentPiece[0]]
 						[x - (pieceCoords[0] - 3)]
 							[y - (pieceCoords[1] - 3)]
 							!= '\0'
@@ -739,9 +783,9 @@ public:
 				break;
 
 			case 'w':
-				int pastPiece{ currentPiece };
+				int pastPiece{ currentPiece[0] };
 
-				spinPiece(currentPiece);
+				spinPiece(currentPiece[0]);
 
 				// check if overlaping a piece, if so, return.
 				for (int y{ yLimit + 1 }; y >= 0; y--)
@@ -751,7 +795,7 @@ public:
 						if (pieceCheck(x, y)) {
 							if (plane[x][y] == '[')
 							{
-								currentPiece = pastPiece; // revert
+								currentPiece[0] = pastPiece; // revert
 								break;
 							}
 						}
