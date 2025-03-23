@@ -700,7 +700,7 @@ private:
 				}
 			}
 
-			std::cout << std::endl;
+			std::cout << "\n";
 		}
 	}
 
@@ -837,7 +837,7 @@ private:
 				}
 
 			}
-			std::cout << std::endl;
+			std::cout << "\n";
 		}
 	}
 
